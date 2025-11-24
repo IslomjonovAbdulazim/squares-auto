@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4x6 Word Placement Engine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .input-section {
+            margin-bottom: 30px;
+        }
+        .words-input {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .generate-btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .generate-btn:hover {
+            background: #0056b3;
+        }
+        .results-section {
+            margin-top: 30px;
+        }
+        .grid-result {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+        .grid-display {
+            display: grid;
+            grid-template-columns: repeat(6, 40px);
+            gap: 2px;
+            margin: 10px 0;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #333;
+            background: white;
+            font-weight: bold;
+        }
+        .cell.word-0 { background-color: #c62828; color: white; } /* Dark Red */
+        .cell.word-1 { background-color: #2e7d32; color: white; } /* Dark Green */
+        .cell.word-2 { background-color: #1565c0; color: white; } /* Dark Blue */
+        .cell.word-3 { background-color: #ef6c00; color: white; } /* Dark Orange */
+        .cell.word-4 { background-color: #7b1fa2; color: white; } /* Dark Purple */
+        .cell.word-5 { background-color: #00695c; color: white; } /* Dark Teal */
+        .cell.filler { background-color: #f5f5f5; color: #666; } /* Gray for fillers */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .copy-btn:hover {
+            background: #218838;
+        }
+        .json-output {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>4×6 Word Placement Engine</h1>
+        
+        <div class="input-section">
+            <label for="words">Enter words (comma-separated):</label>
+            <textarea id="words" class="words-input" placeholder="name, age, phone, address"></textarea>
+            <br>
+            <div style="margin: 10px 0;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                    <input type="checkbox" id="randomLetters" checked>
+                    <span>Use random letters instead of 'X' for empty cells</span>
+                </label>
+            </div>
+            <button class="generate-btn" onclick="generateGrids()">Generate Multiple Grids</button>
+        </div>
+
+        <div class="results-section" id="results"></div>
+    </div>
+
+    <script>
+        class WordPlacementEngine {
+            constructor() {
+                this.rows = 4;
+                this.cols = 6;
+                this.commonWords = new Set([
+                    'THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR',
+                    'HAD', 'BY', 'UP', 'DO', 'NO', 'IF', 'TO', 'MY', 'IS', 'IN', 'IT', 'ON', 'AS', 'BE', 'AT',
+                    'OR', 'AN', 'HE', 'HI', 'SO', 'WE', 'AM', 'GO', 'ME', 'OF', 'HIM', 'HIS', 'HOW', 'MAN',
+                    'NEW', 'NOW', 'OLD', 'SEE', 'TWO', 'WHO', 'BOY', 'DID', 'ITS', 'LET', 'PUT', 'SAY', 'SHE',
+                    'TOO', 'USE'
+                ]);
+            }
+
+            createEmptyGrid() {
+                return Array(this.rows).fill().map(() => Array(this.cols).fill(null));
+            }
+
+            isValidPosition(grid, row, col) {
+                return row >= 0 && row < this.rows && col >= 0 && col < this.cols && grid[row][col] === null;
+            }
+
+            canPlaceWord(grid, word, startRow, startCol, path) {
+                for (let i = 0; i < word.length; i++) {
+                    const [row, col] = path[i];
+                    if (!this.isValidPosition(grid, row, col)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            generatePaths(word, startRow, startCol) {
+                const paths = [];
+
+                // Horizontal path (right)
+                if (startCol + word.length <= this.cols) {
+                    const horizontalPath = [];
+                    for (let i = 0; i < word.length; i++) {
+                        horizontalPath.push([startRow, startCol + i]);
+                    }
+                    paths.push(horizontalPath);
+                }
+
+                // Vertical path (down)
+                if (startRow + word.length <= this.rows) {
+                    const verticalPath = [];
+                    for (let i = 0; i < word.length; i++) {
+                        verticalPath.push([startRow + i, startCol]);
+                    }
+                    paths.push(verticalPath);
+                }
+
+                // L-shaped paths (2 segments with 90° turn)
+                if (word.length >= 3) {
+                    // Right then down
+                    for (let splitAt = 1; splitAt < word.length; splitAt++) {
+                        if (startCol + splitAt < this.cols && startRow + (word.length - splitAt) <= this.rows) {
+                            const path = [];
+                            // Horizontal segment
+                            for (let i = 0; i < splitAt; i++) {
+                                path.push([startRow, startCol + i]);
+                            }
+                            // Vertical segment
+                            for (let i = splitAt; i < word.length; i++) {
+                                path.push([startRow + (i - splitAt + 1), startCol + splitAt - 1]);
+                            }
+                            paths.push(path);
+                        }
+                    }
+
+                    // Down then right
+                    for (let splitAt = 1; splitAt < word.length; splitAt++) {
+                        if (startRow + splitAt < this.rows && startCol + (word.length - splitAt) <= this.cols) {
+                            const path = [];
+                            // Vertical segment
+                            for (let i = 0; i < splitAt; i++) {
+                                path.push([startRow + i, startCol]);
+                            }
+                            // Horizontal segment
+                            for (let i = splitAt; i < word.length; i++) {
+                                path.push([startRow + splitAt - 1, startCol + (i - splitAt + 1)]);
+                            }
+                            paths.push(path);
+                        }
+                    }
+                }
+
+                return paths;
+            }
+
+            placeWord(grid, word, path) {
+                for (let i = 0; i < word.length; i++) {
+                    const [row, col] = path[i];
+                    grid[row][col] = word[i].toUpperCase();
+                }
+            }
+
+            removeWord(grid, path) {
+                for (const [row, col] of path) {
+                    grid[row][col] = null;
+                }
+            }
+
+            solveWithBacktracking(grid, words, wordIndex, placements) {
+                if (wordIndex === words.length) {
+                    console.log('All words placed successfully!');
+                    return true;
+                }
+
+                const word = words[wordIndex];
+                console.log(`Trying to place word ${wordIndex + 1}/${words.length}: "${word}"`);
+                
+                const positions = [];
+
+                // Generate all possible starting positions
+                for (let row = 0; row < this.rows; row++) {
+                    for (let col = 0; col < this.cols; col++) {
+                        positions.push([row, col]);
+                    }
+                }
+
+                // Shuffle positions for randomization
+                this.shuffleArray(positions);
+
+                for (const [startRow, startCol] of positions) {
+                    const paths = this.generatePaths(word, startRow, startCol);
+                    console.log(`Generated ${paths.length} paths for "${word}" at [${startRow}, ${startCol}]`);
+                    
+                    this.shuffleArray(paths);
+
+                    for (const path of paths) {
+                        if (this.canPlaceWord(grid, word, startRow, startCol, path)) {
+                            console.log(`Placing "${word}" with path:`, path);
+                            this.placeWord(grid, word, path);
+                            placements.push({ word, path });
+
+                            if (this.solveWithBacktracking(grid, words, wordIndex + 1, placements)) {
+                                return true;
+                            }
+
+                            console.log(`Backtracking from "${word}"`);
+                            this.removeWord(grid, path);
+                            placements.pop();
+                        }
+                    }
+                }
+
+                console.log(`Could not place word: "${word}"`);
+                return false;
+            }
+
+            solveWithBacktrackingWithOwnership(grid, ownerGrid, words, wordIndex, placements) {
+                if (wordIndex === words.length) {
+                    console.log('All words placed successfully!');
+                    return true;
+                }
+
+                const word = words[wordIndex];
+                console.log(`Trying to place word ${wordIndex + 1}/${words.length}: "${word}"`);
+                
+                const positions = [];
+
+                // Generate all possible starting positions
+                for (let row = 0; row < this.rows; row++) {
+                    for (let col = 0; col < this.cols; col++) {
+                        positions.push([row, col]);
+                    }
+                }
+
+                // Shuffle positions for randomization
+                this.shuffleArray(positions);
+
+                for (const [startRow, startCol] of positions) {
+                    const paths = this.generatePaths(word, startRow, startCol);
+                    
+                    this.shuffleArray(paths);
+
+                    for (const path of paths) {
+                        if (this.canPlaceWord(grid, word, startRow, startCol, path)) {
+                            this.placeWordWithOwnership(grid, ownerGrid, word, path, wordIndex);
+                            placements.push({ word, path, wordIndex });
+
+                            if (this.solveWithBacktrackingWithOwnership(grid, ownerGrid, words, wordIndex + 1, placements)) {
+                                return true;
+                            }
+
+                            this.removeWordWithOwnership(grid, ownerGrid, path);
+                            placements.pop();
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            placeWordWithOwnership(grid, ownerGrid, word, path, wordIndex) {
+                for (let i = 0; i < word.length; i++) {
+                    const [row, col] = path[i];
+                    grid[row][col] = word[i].toUpperCase();
+                    ownerGrid[row][col] = wordIndex;
+                }
+            }
+
+            removeWordWithOwnership(grid, ownerGrid, path) {
+                for (const [row, col] of path) {
+                    grid[row][col] = null;
+                    ownerGrid[row][col] = null;
+                }
+            }
+
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            getRandomLetter() {
+                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                return letters[Math.floor(Math.random() * letters.length)];
+            }
+
+            isCommonWord(str) {
+                return this.commonWords.has(str.toUpperCase());
+            }
+
+            addFillerLetters(grid, ownerGrid, useRandomLetters = true) {
+                const finalGrid = grid.map(row => [...row]);
+                const randomLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                
+                for (let row = 0; row < this.rows; row++) {
+                    for (let col = 0; col < this.cols; col++) {
+                        if (finalGrid[row][col] === null) {
+                            if (useRandomLetters) {
+                                finalGrid[row][col] = randomLetters[Math.floor(Math.random() * randomLetters.length)];
+                            } else {
+                                finalGrid[row][col] = 'X';
+                            }
+                            // Mark filler cells as owned by -1
+                            if (ownerGrid) {
+                                ownerGrid[row][col] = -1;
+                            }
+                        }
+                    }
+                }
+                return finalGrid;
+            }
+
+            generateGrid(words, useRandomLetters = true) {
+                console.log('generateGrid called with words:', words);
+                console.log('Using random letters:', useRandomLetters);
+                const maxAttempts = 50;
+                
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    console.log(`Attempt ${attempt + 1}/${maxAttempts}`);
+                    
+                    const grid = this.createEmptyGrid();
+                    const wordOwnerGrid = this.createEmptyGrid(); // Track which word owns each cell
+                    const placements = [];
+                    const shuffledWords = [...words];
+                    this.shuffleArray(shuffledWords);
+                    
+                    console.log('Shuffled words:', shuffledWords);
+
+                    if (this.solveWithBacktrackingWithOwnership(grid, wordOwnerGrid, shuffledWords, 0, placements)) {
+                        console.log('Backtracking successful, adding filler letters...');
+                        const finalGrid = this.addFillerLetters(grid, wordOwnerGrid, useRandomLetters);
+                        console.log('Final grid:', finalGrid);
+                        console.log('Word ownership grid:', wordOwnerGrid);
+                        return {
+                            success: true,
+                            grid: finalGrid,
+                            wordOwnerGrid: wordOwnerGrid,
+                            placements: placements
+                        };
+                    } else {
+                        console.log(`Attempt ${attempt + 1} failed`);
+                    }
+                }
+
+                console.log('All attempts failed');
+                return { success: false, error: "Could not place all words after maximum attempts" };
+            }
+
+            generateMultipleGrids(words, count = 5, useRandomLetters = true) {
+                const results = [];
+                const normalizedWords = words.map(w => w.trim().toUpperCase()).filter(w => w.length > 0);
+
+                if (normalizedWords.length === 0) {
+                    return [{ success: false, error: "No valid words provided" }];
+                }
+
+                // Check if total letters can fit
+                const totalLetters = normalizedWords.reduce((sum, word) => sum + word.length, 0);
+                if (totalLetters > 24) {
+                    return [{ success: false, error: "Total word length exceeds grid capacity (24 cells)" }];
+                }
+
+                for (let i = 0; i < count; i++) {
+                    try {
+                        const result = this.generateGrid(normalizedWords, useRandomLetters);
+                        if (result && result.success) {
+                            results.push({
+                                title: `Word Grid (4x6)`,
+                                order_id: i + 1,
+                                grid: result.grid,
+                                wordOwnerGrid: result.wordOwnerGrid,
+                                rows: this.rows,
+                                columns: this.cols,
+                                targetWords: normalizedWords.map(w => w.toLowerCase()),
+                                is_active: true
+                            });
+                        } else {
+                            console.log(`Attempt ${i + 1} failed:`, result);
+                        }
+                    } catch (error) {
+                        console.log(`Error in attempt ${i + 1}:`, error);
+                    }
+                }
+
+                if (results.length === 0) {
+                    return [{ success: false, error: "Could not generate any valid grids. Try fewer or shorter words." }];
+                }
+
+                return results;
+            }
+        }
+
+        function generateGrids() {
+            console.log('Starting grid generation...');
+            
+            const wordsInput = document.getElementById('words').value;
+            console.log('Raw input:', wordsInput);
+            
+            const words = wordsInput.split(',').map(w => w.trim()).filter(w => w.length > 0);
+            console.log('Processed words:', words);
+            
+            const useRandomLetters = document.getElementById('randomLetters').checked;
+            console.log('Use random letters:', useRandomLetters);
+            
+            if (words.length === 0) {
+                document.getElementById('results').innerHTML = '<div class="error">Please enter some words!</div>';
+                return;
+            }
+
+            console.log('Creating engine...');
+            const engine = new WordPlacementEngine();
+            
+            console.log('Generating grids...');
+            const results = engine.generateMultipleGrids(words, 5, useRandomLetters);
+            console.log('Results:', results);
+            
+            displayResults(results);
+        }
+
+        function displayResults(results) {
+            console.log('displayResults called with:', results);
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (!results || results.length === 0) {
+                resultsDiv.innerHTML = '<div class="error">No results generated</div>';
+                return;
+            }
+
+            results.forEach((result, index) => {
+                console.log(`Processing result ${index + 1}:`, result);
+                console.log(`Word owner grid exists:`, !!result.wordOwnerGrid);
+                if (result.wordOwnerGrid) {
+                    console.log(`Word owner grid:`, result.wordOwnerGrid);
+                }
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'grid-result';
+
+                if (!result || result.success === false) {
+                    resultDiv.innerHTML = `<div class="error">Error: ${result ? result.error : 'Unknown error'}</div>`;
+                    resultsDiv.appendChild(resultDiv);
+                    return;
+                }
+
+                // Check if result has required properties
+                if (!result.grid || !result.title || !result.targetWords) {
+                    resultDiv.innerHTML = `<div class="error">Invalid result structure</div>`;
+                    resultsDiv.appendChild(resultDiv);
+                    return;
+                }
+
+                const gridDisplay = document.createElement('div');
+                gridDisplay.className = 'grid-display';
+
+                result.grid.forEach((row, rowIndex) => {
+                    row.forEach((cell, colIndex) => {
+                        const cellDiv = document.createElement('div');
+                        cellDiv.className = 'cell';
+                        cellDiv.textContent = cell || '';
+                        
+                        // Color coding based on word ownership
+                        if (result.wordOwnerGrid && result.wordOwnerGrid[rowIndex] && result.wordOwnerGrid[rowIndex][colIndex] !== null && result.wordOwnerGrid[rowIndex][colIndex] !== undefined) {
+                            const wordIndex = result.wordOwnerGrid[rowIndex][colIndex];
+                            console.log(`Cell [${rowIndex},${colIndex}] = "${cell}" owned by word ${wordIndex}`);
+                            if (wordIndex === -1) {
+                                // Filler cell
+                                cellDiv.classList.add('filler');
+                            } else {
+                                // Word cell
+                                cellDiv.classList.add(`word-${wordIndex}`);
+                            }
+                        } else if (cell === 'X') {
+                            cellDiv.classList.add('filler');
+                            console.log(`Cell [${rowIndex},${colIndex}] = "${cell}" is filler (no ownership info)`);
+                        } else {
+                            console.log(`Cell [${rowIndex},${colIndex}] = "${cell}" has no color assignment`);
+                        }
+                        
+                        gridDisplay.appendChild(cellDiv);
+                    });
+                });
+
+                // Create legend
+                const legend = document.createElement('div');
+                legend.className = 'legend';
+                
+                result.targetWords.forEach((word, index) => {
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    
+                    const colorBox = document.createElement('div');
+                    colorBox.className = `legend-color word-${index}`;
+                    colorBox.textContent = word[0].toUpperCase();
+                    
+                    const label = document.createElement('span');
+                    label.textContent = word.toUpperCase();
+                    
+                    legendItem.appendChild(colorBox);
+                    legendItem.appendChild(label);
+                    legend.appendChild(legendItem);
+                });
+
+                const jsonString = JSON.stringify(result, null, 2);
+                
+                resultDiv.innerHTML = `
+                    <h3>${result.title} - Order ID: ${result.order_id}</h3>
+                    <div><strong>Target Words:</strong> ${result.targetWords.join(', ')}</div>
+                    <div>${legend.outerHTML}</div>
+                    <div style="margin: 10px 0;">${gridDisplay.outerHTML}</div>
+                    <button class="copy-btn" onclick="copyToClipboard(\`${jsonString.replace(/`/g, '\\`')}\`)">Copy JSON</button>
+                    <div class="json-output">${escapeHtml(jsonString)}</div>
+                `;
+
+                resultsDiv.appendChild(resultDiv);
+            });
+        }
+
+        function copyToClipboard(jsonString) {
+            navigator.clipboard.writeText(jsonString).then(() => {
+                alert('JSON copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy to clipboard');
+            });
+        }
+
+        function escapeQuotes(str) {
+            return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Auto-generate example on page load
+        window.onload = function() {
+            document.getElementById('words').value = 'name, age, phone, address';
+        };
+    </script>
+</body>
+</html>
