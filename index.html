@@ -601,11 +601,41 @@
         }
 
         function copyToClipboard(jsonString) {
-            navigator.clipboard.writeText(jsonString).then(() => {
-                alert('JSON copied to clipboard!');
-            }).catch(() => {
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(jsonString).then(() => {
+                    alert('JSON copied to clipboard!');
+                }).catch(() => {
+                    fallbackCopyToClipboard(jsonString);
+                });
+            } else {
+                // Fallback for non-secure contexts
+                fallbackCopyToClipboard(jsonString);
+            }
+        }
+
+        function fallbackCopyToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    alert('JSON copied to clipboard!');
+                } else {
+                    alert('Failed to copy to clipboard');
+                }
+            } catch (err) {
                 alert('Failed to copy to clipboard');
-            });
+            } finally {
+                document.body.removeChild(textArea);
+            }
         }
 
         function escapeQuotes(str) {
