@@ -592,7 +592,7 @@
                     <div><strong>Target Words:</strong> ${result.targetWords.join(', ')}</div>
                     <div>${legend.outerHTML}</div>
                     <div style="margin: 10px 0;">${gridDisplay.outerHTML}</div>
-                    <button class="copy-btn" onclick="copyToClipboard('${jsonString.replace(/'/g, "\\'")}')">Copy JSON</button>
+                    <button class="copy-btn" onclick="copyToClipboard(${JSON.stringify(jsonString)})">Copy JSON</button>
                     <div class="json-output">${escapeHtml(jsonString)}</div>
                 `;
 
