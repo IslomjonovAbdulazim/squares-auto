@@ -123,6 +123,30 @@
             color: red;
             font-weight: bold;
         }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast.success {
+            background: #28a745;
+        }
+        .toast.error {
+            background: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -604,7 +628,7 @@
             // Try modern clipboard API first
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(jsonString).then(() => {
-                    alert('JSON copied to clipboard!');
+                    showToast('JSON copied to clipboard!', 'success');
                 }).catch(() => {
                     fallbackCopyToClipboard(jsonString);
                 });
@@ -627,12 +651,12 @@
             try {
                 const successful = document.execCommand('copy');
                 if (successful) {
-                    alert('JSON copied to clipboard!');
+                    showToast('JSON copied to clipboard!', 'success');
                 } else {
-                    alert('Failed to copy to clipboard');
+                    showToast('Failed to copy to clipboard', 'error');
                 }
             } catch (err) {
-                alert('Failed to copy to clipboard');
+                showToast('Failed to copy to clipboard', 'error');
             } finally {
                 document.body.removeChild(textArea);
             }
@@ -640,6 +664,29 @@
 
         function escapeQuotes(str) {
             return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            // Remove toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
         }
 
         function escapeHtml(text) {
