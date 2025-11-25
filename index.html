@@ -98,7 +98,7 @@
             font-size: 12px;
         }
         .copy-btn {
-            background: #28a745;
+            background: #dc3545;
             color: white;
             padding: 8px 16px;
             border: none;
@@ -107,7 +107,7 @@
             font-size: 14px;
         }
         .copy-btn:hover {
-            background: #218838;
+            background: #c82333;
         }
         .json-output {
             background: #f1f1f1;
@@ -275,13 +275,10 @@
 
             solveWithBacktracking(grid, words, wordIndex, placements) {
                 if (wordIndex === words.length) {
-                    console.log('All words placed successfully!');
                     return true;
                 }
 
                 const word = words[wordIndex];
-                console.log(`Trying to place word ${wordIndex + 1}/${words.length}: "${word}"`);
-                
                 const positions = [];
 
                 // Generate all possible starting positions
@@ -296,13 +293,10 @@
 
                 for (const [startRow, startCol] of positions) {
                     const paths = this.generatePaths(word, startRow, startCol);
-                    console.log(`Generated ${paths.length} paths for "${word}" at [${startRow}, ${startCol}]`);
-                    
                     this.shuffleArray(paths);
 
                     for (const path of paths) {
                         if (this.canPlaceWord(grid, word, startRow, startCol, path)) {
-                            console.log(`Placing "${word}" with path:`, path);
                             this.placeWord(grid, word, path);
                             placements.push({ word, path });
 
@@ -310,26 +304,21 @@
                                 return true;
                             }
 
-                            console.log(`Backtracking from "${word}"`);
                             this.removeWord(grid, path);
                             placements.pop();
                         }
                     }
                 }
 
-                console.log(`Could not place word: "${word}"`);
                 return false;
             }
 
             solveWithBacktrackingWithOwnership(grid, ownerGrid, words, wordIndex, placements) {
                 if (wordIndex === words.length) {
-                    console.log('All words placed successfully!');
                     return true;
                 }
 
                 const word = words[wordIndex];
-                console.log(`Trying to place word ${wordIndex + 1}/${words.length}: "${word}"`);
-                
                 const positions = [];
 
                 // Generate all possible starting positions
@@ -419,38 +408,26 @@
             }
 
             generateGrid(words, useRandomLetters = true) {
-                console.log('generateGrid called with words:', words);
-                console.log('Using random letters:', useRandomLetters);
                 const maxAttempts = 50;
                 
                 for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                    console.log(`Attempt ${attempt + 1}/${maxAttempts}`);
-                    
                     const grid = this.createEmptyGrid();
-                    const wordOwnerGrid = this.createEmptyGrid(); // Track which word owns each cell
+                    const wordOwnerGrid = this.createEmptyGrid();
                     const placements = [];
                     const shuffledWords = [...words];
                     this.shuffleArray(shuffledWords);
-                    
-                    console.log('Shuffled words:', shuffledWords);
 
                     if (this.solveWithBacktrackingWithOwnership(grid, wordOwnerGrid, shuffledWords, 0, placements)) {
-                        console.log('Backtracking successful, adding filler letters...');
                         const finalGrid = this.addFillerLetters(grid, wordOwnerGrid, useRandomLetters);
-                        console.log('Final grid:', finalGrid);
-                        console.log('Word ownership grid:', wordOwnerGrid);
                         return {
                             success: true,
                             grid: finalGrid,
                             wordOwnerGrid: wordOwnerGrid,
                             placements: placements
                         };
-                    } else {
-                        console.log(`Attempt ${attempt + 1} failed`);
                     }
                 }
 
-                console.log('All attempts failed');
                 return { success: false, error: "Could not place all words after maximum attempts" };
             }
 
@@ -482,11 +459,9 @@
                                 targetWords: normalizedWords.map(w => w.toLowerCase()),
                                 is_active: true
                             });
-                        } else {
-                            console.log(`Attempt ${i + 1} failed:`, result);
                         }
                     } catch (error) {
-                        console.log(`Error in attempt ${i + 1}:`, error);
+                        // Silent fail
                     }
                 }
 
@@ -499,34 +474,21 @@
         }
 
         function generateGrids() {
-            console.log('Starting grid generation...');
-            
             const wordsInput = document.getElementById('words').value;
-            console.log('Raw input:', wordsInput);
-            
             const words = wordsInput.split(',').map(w => w.trim()).filter(w => w.length > 0);
-            console.log('Processed words:', words);
-            
             const useRandomLetters = document.getElementById('randomLetters').checked;
-            console.log('Use random letters:', useRandomLetters);
             
             if (words.length === 0) {
                 document.getElementById('results').innerHTML = '<div class="error">Please enter some words!</div>';
                 return;
             }
 
-            console.log('Creating engine...');
             const engine = new WordPlacementEngine();
-            
-            console.log('Generating grids...');
             const results = engine.generateMultipleGrids(words, 5, useRandomLetters);
-            console.log('Results:', results);
-            
             displayResults(results);
         }
 
         function displayResults(results) {
-            console.log('displayResults called with:', results);
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '';
 
@@ -536,11 +498,6 @@
             }
 
             results.forEach((result, index) => {
-                console.log(`Processing result ${index + 1}:`, result);
-                console.log(`Word owner grid exists:`, !!result.wordOwnerGrid);
-                if (result.wordOwnerGrid) {
-                    console.log(`Word owner grid:`, result.wordOwnerGrid);
-                }
                 
                 const resultDiv = document.createElement('div');
                 resultDiv.className = 'grid-result';
@@ -570,7 +527,6 @@
                         // Color coding based on word ownership
                         if (result.wordOwnerGrid && result.wordOwnerGrid[rowIndex] && result.wordOwnerGrid[rowIndex][colIndex] !== null && result.wordOwnerGrid[rowIndex][colIndex] !== undefined) {
                             const wordIndex = result.wordOwnerGrid[rowIndex][colIndex];
-                            console.log(`Cell [${rowIndex},${colIndex}] = "${cell}" owned by word ${wordIndex}`);
                             if (wordIndex === -1) {
                                 // Filler cell
                                 cellDiv.classList.add('filler');
@@ -580,9 +536,7 @@
                             }
                         } else if (cell === 'X') {
                             cellDiv.classList.add('filler');
-                            console.log(`Cell [${rowIndex},${colIndex}] = "${cell}" is filler (no ownership info)`);
                         } else {
-                            console.log(`Cell [${rowIndex},${colIndex}] = "${cell}" has no color assignment`);
                         }
                         
                         gridDisplay.appendChild(cellDiv);
@@ -614,52 +568,53 @@
                 resultDiv.innerHTML = `
                     <h3>${result.title} - Order ID: ${result.order_id}</h3>
                     <div><strong>Target Words:</strong> ${result.targetWords.join(', ')}</div>
-                    <div>${legend.outerHTML}</div>
                     <div style="margin: 10px 0;">${gridDisplay.outerHTML}</div>
-                    <button class="copy-btn" onclick="copyToClipboard(${JSON.stringify(jsonString)})">Copy JSON</button>
-                    <div class="json-output">${escapeHtml(jsonString)}</div>
+                    <button class="copy-btn" onclick="copyJSON('${result.order_id}')">Copy JSON</button>
+                    <div class="json-output" id="json-${result.order_id}">${escapeHtml(jsonString)}</div>
                 `;
 
                 resultsDiv.appendChild(resultDiv);
             });
         }
 
-        function copyToClipboard(jsonString) {
-            // Try modern clipboard API first
+        function copyJSON(orderId) {
+            const jsonElement = document.getElementById(`json-${orderId}`);
+            if (!jsonElement) {
+                showToast('JSON not found', 'error');
+                return;
+            }
+            
+            const jsonText = jsonElement.textContent;
+            
             if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(jsonString).then(() => {
-                    showToast('JSON copied to clipboard!', 'success');
-                }).catch(() => {
-                    fallbackCopyToClipboard(jsonString);
-                });
+                navigator.clipboard.writeText(jsonText)
+                    .then(() => {
+                        showToast('JSON copied!', 'success');
+                    })
+                    .catch(() => {
+                        fallbackCopy(jsonText);
+                    });
             } else {
-                // Fallback for non-secure contexts
-                fallbackCopyToClipboard(jsonString);
+                fallbackCopy(jsonText);
             }
         }
 
-        function fallbackCopyToClipboard(text) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
             
             try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showToast('JSON copied to clipboard!', 'success');
-                } else {
-                    showToast('Failed to copy to clipboard', 'error');
-                }
-            } catch (err) {
-                showToast('Failed to copy to clipboard', 'error');
-            } finally {
-                document.body.removeChild(textArea);
+                const success = document.execCommand('copy');
+                showToast(success ? 'JSON copied!' : 'Copy failed', success ? 'success' : 'error');
+            } catch (e) {
+                showToast('Copy failed', 'error');
             }
+            
+            document.body.removeChild(textarea);
         }
 
         function escapeQuotes(str) {
