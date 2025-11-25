@@ -181,6 +181,110 @@
                     'NEW', 'NOW', 'OLD', 'SEE', 'TWO', 'WHO', 'BOY', 'DID', 'ITS', 'LET', 'PUT', 'SAY', 'SHE',
                     'TOO', 'USE'
                 ]);
+                this.translations = {
+                    // Personal Info
+                    'name': { uz: 'ism', ru: 'имя' },
+                    'age': { uz: 'yosh', ru: 'возраст' },
+                    'phone': { uz: 'telefon', ru: 'телефон' },
+                    'address': { uz: 'manzil', ru: 'адрес' },
+                    'email': { uz: 'elektron pochta', ru: 'эл. почта' },
+                    'birthday': { uz: "tug'ilgan kun", ru: 'день рождения' },
+                    
+                    // Family
+                    'family': { uz: 'oila', ru: 'семья' },
+                    'mother': { uz: 'ona', ru: 'мама' },
+                    'father': { uz: 'ota', ru: 'папа' },
+                    'sister': { uz: 'opa', ru: 'сестра' },
+                    'brother': { uz: 'aka', ru: 'брат' },
+                    'child': { uz: 'bola', ru: 'ребёнок' },
+                    'son': { uz: "o'g'il", ru: 'сын' },
+                    'daughter': { uz: 'qiz', ru: 'дочь' },
+                    
+                    // Work/Education
+                    'work': { uz: 'ish', ru: 'работа' },
+                    'job': { uz: 'kasb', ru: 'профессия' },
+                    'school': { uz: 'maktab', ru: 'школа' },
+                    'university': { uz: 'universitet', ru: 'университет' },
+                    'student': { uz: 'talaba', ru: 'студент' },
+                    'teacher': { uz: "o'qituvchi", ru: 'учитель' },
+                    'doctor': { uz: 'shifokor', ru: 'врач' },
+                    'engineer': { uz: 'muhandis', ru: 'инженер' },
+                    
+                    // Time
+                    'time': { uz: 'vaqt', ru: 'время' },
+                    'day': { uz: 'kun', ru: 'день' },
+                    'week': { uz: 'hafta', ru: 'неделя' },
+                    'month': { uz: 'oy', ru: 'месяц' },
+                    'year': { uz: 'yil', ru: 'год' },
+                    'today': { uz: 'bugun', ru: 'сегодня' },
+                    'tomorrow': { uz: 'ertaga', ru: 'завтра' },
+                    'yesterday': { uz: 'kecha', ru: 'вчера' },
+                    
+                    // Colors
+                    'red': { uz: 'qizil', ru: 'красный' },
+                    'blue': { uz: "ko'k", ru: 'синий' },
+                    'green': { uz: 'yashil', ru: 'зелёный' },
+                    'black': { uz: 'qora', ru: 'чёрный' },
+                    'white': { uz: 'oq', ru: 'белый' },
+                    'yellow': { uz: 'sariq', ru: 'жёлтый' },
+                    
+                    // Numbers
+                    'one': { uz: 'bir', ru: 'один' },
+                    'two': { uz: 'ikki', ru: 'два' },
+                    'three': { uz: 'uch', ru: 'три' },
+                    'four': { uz: "to'rt", ru: 'четыре' },
+                    'five': { uz: 'besh', ru: 'пять' },
+                    'six': { uz: 'olti', ru: 'шесть' },
+                    'seven': { uz: 'yetti', ru: 'семь' },
+                    'eight': { uz: 'sakkiz', ru: 'восемь' },
+                    'nine': { uz: "to'qqiz", ru: 'девять' },
+                    'ten': { uz: "o'n", ru: 'десять' },
+                    
+                    // Common Objects
+                    'house': { uz: 'uy', ru: 'дом' },
+                    'car': { uz: 'mashina', ru: 'машина' },
+                    'food': { uz: 'ovqat', ru: 'еда' },
+                    'water': { uz: 'suv', ru: 'вода' },
+                    'money': { uz: 'pul', ru: 'деньги' },
+                    'friend': { uz: "do'st", ru: 'друг' },
+                    'book': { uz: 'kitob', ru: 'книга' },
+                    'computer': { uz: 'kompyuter', ru: 'компьютер' },
+                    
+                    // Adjectives
+                    'big': { uz: 'katta', ru: 'большой' },
+                    'small': { uz: 'kichik', ru: 'маленький' },
+                    'good': { uz: 'yaxshi', ru: 'хороший' },
+                    'bad': { uz: 'yomon', ru: 'плохой' },
+                    'new': { uz: 'yangi', ru: 'новый' },
+                    'old': { uz: 'eski', ru: 'старый' },
+                    'young': { uz: 'yosh', ru: 'молодой' },
+                    'beautiful': { uz: "go'zal", ru: 'красивый' },
+                    'happy': { uz: 'xursand', ru: 'счастливый' },
+                    'sad': { uz: "g'amgin", ru: 'грустный' }
+                };
+            }
+
+            getTranslations(words) {
+                const translations = {
+                    en: words.map(w => w.toLowerCase()),
+                    uz: [],
+                    ru: []
+                };
+                
+                words.forEach(word => {
+                    const lowerWord = word.toLowerCase();
+                    const translation = this.translations[lowerWord];
+                    
+                    if (translation) {
+                        translations.uz.push(translation.uz);
+                        translations.ru.push(translation.ru);
+                    } else {
+                        translations.uz.push(lowerWord);
+                        translations.ru.push(lowerWord);
+                    }
+                });
+                
+                return translations;
             }
 
             createEmptyGrid() {
@@ -449,6 +553,9 @@
                     try {
                         const result = this.generateGrid(normalizedWords, useRandomLetters);
                         if (result && result.success) {
+                            const targetWords = normalizedWords.map(w => w.toLowerCase());
+                            const translations = this.getTranslations(targetWords);
+                            
                             results.push({
                                 title: `Word Grid (4x6)`,
                                 order_id: i + 1,
@@ -456,7 +563,8 @@
                                 wordOwnerGrid: result.wordOwnerGrid,
                                 rows: this.rows,
                                 columns: this.cols,
-                                targetWords: normalizedWords.map(w => w.toLowerCase()),
+                                targetWords: targetWords,
+                                translations: translations,
                                 is_active: true
                             });
                         }
