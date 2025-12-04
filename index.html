@@ -195,9 +195,7 @@
                 }
                 
                 const models = [
-                    'sonar',
-                    'sonar-pro',
-                    'sonar-reasoning'
+                    'sonar'
                 ];
                 
                 for (const model of models) {
@@ -574,7 +572,7 @@
                 document.getElementById('results').innerHTML = '<div class="error">Please enter some words!</div>';
                 return;
             }
-
+            
             // Show loading
             document.getElementById('results').innerHTML = '<div>Generating grids and translations...</div>';
 
